@@ -26,7 +26,7 @@ class Food(db.Model):
     carbohydrates = db.Column(db.Float, nullable=False)
     fats = db.Column(db.Float, nullable=False)
     date_added = db.Column(db.DateTime, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # Předpokládáme, že máte vztah mezi uživatelem a jídlem
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     def __repr__(self):
         return f'<Food {self.name}>'
@@ -141,7 +141,7 @@ def chose_date_nuts():
                         "protein": food.protein,
                         "carbohydrates": food.carbohydrates,
                         "fats": food.fats,
-                        "date_added": food.date_added.strftime("%Y-%m-%d"),  # Format datetime as string
+                        "date_added": food.date_added.strftime("%Y-%m-%d"), 
                     }
                     print(food)
                     chose_date_foods_list.append(food_dict)
@@ -152,7 +152,7 @@ def chose_date_nuts():
 @app.route("/send_food")
 def send_food():
     # function to send data for today's nutrition
-    today = datetime.datetime.today().date()  # Ensure we're comparing just the date part
+    today = datetime.datetime.today().date() 
     today_foods = Food.query.filter_by(user_id=session["user_id"]).all()
     today_foods_list = []
     for food in today_foods:
@@ -164,7 +164,7 @@ def send_food():
                 "protein": food.protein,
                 "carbohydrates": food.carbohydrates,
                 "fats": food.fats,
-                "date_added": food.date_added.strftime("%Y-%m-%d"),  # Format datetime as string
+                "date_added": food.date_added.strftime("%Y-%m-%d"),  
             }
             
             today_foods_list.append(food_dict)
@@ -181,7 +181,7 @@ def user():
         return render_template("user.html", user=user)
 
     else:
-        # Redirect to login page or show an error if the user is not logged in
+
         flash("You are not logged in!", "danger")
         return redirect(url_for("login"))
 
