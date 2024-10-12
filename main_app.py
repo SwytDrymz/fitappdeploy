@@ -195,6 +195,7 @@ def logout():
 
 
 
+API_KEY = 'NYJrbGl7MiLH8iyUsYWrf3Z8Rrpv7BDoOduPvddt'
 
 @app.route("/receive_data", methods=["POST"])
 def receive_data():
@@ -203,81 +204,93 @@ def receive_data():
         if data:
             session["query_name"] = data.get("query_name")
             session["query_weight"] = data.get("query_weight")
-        
-            
 
-# když je weight 1 serving
+            # Když je hmotnost 1 serving
             if session.get("query_weight") == "1 serving":
-                query = "1 serving" + " " + session.get("query_name")
+                query = session.get("query_name")
                 
-                if query != None:
-                    api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(query)
-                    response = requests.get(api_url, headers={'X-Api-Key': 'FQaci+ynPatuFRCh5oYQgQ==cAVWBbtpxIOQcReX'})
-                    
+                if query:
+                    # Hledání potraviny pomocí USDA API
+                    api_url = f'https://api.nal.usda.gov/fdc/v1/foods/search?api_key={API_KEY}&query={query}'
+
+                    response = requests.get(api_url)
+
                     if response.status_code == requests.codes.ok:
                         data = response.json()
+                        if 'foods' in data and data['foods']:
+                            food_data = data['foods'][0]
 
-                        name = data[0]["name"]
+                            # Získání nutričních hodnot pro danou potravinu
+                            name = food_data['description']
+                            nutrients = {n['nutrientName']: n['value'] for n in food_data['foodNutrients']}
 
-                        protein = round((data[0]["protein_g"]) , 4)
-                        
-                        carbohydrates = round((data[0]["carbohydrates_total_g"]), 4)
+                            # Extrahování nutričních hodnot
+                            protein = nutrients.get('Protein', 0.0)
+                            carbohydrates = nutrients.get('Carbohydrate, by difference', 0.0)
+                            fats = nutrients.get('Total lipid (fat)', 0.0)
+                            calorie = nutrients.get('Energy', 0.0)
 
-                        fats = round((data[0]["fat_total_g"]) , 4)
+                            # Uložení nové potraviny do databáze (pokud máš SQLAlchemy nebo jiný DB systém)
+                            new_food = Food(name=name, protein=protein, carbohydrates=carbohydrates, fats=fats, calories=calorie, date_added=datetime.date.today(), user_id=session.get("user_id"))
 
-                        calorie = round((data[0]["calories"]) , 4)
+                            db.session.add(new_food)
+                            db.session.commit()
 
-                        new_food = Food(name=name, protein=protein, carbohydrates=carbohydrates, fats=fats, calories=calorie, date_added=datetime.date.today(), user_id=session.get("user_id"))
+                            result = {
+                                "protein": protein,
+                                "fats": fats,
+                                "carbohydrates": carbohydrates,
+                                "calorie": calorie,
+                                "name": name
+                            }
+                            print(result)
+                            return jsonify(result)
 
-                        db.session.add(new_food)
-                        db.session.commit()
-
-                        data = {"protein": protein, "fats": fats, "carbohydrates": carbohydrates, "calorie":calorie, "name": name}
-
-                    
-
-                    return jsonify(data)
-                
-
-
-# když je weight číslo
-
+            # Když je hmotnost číslo
             else:
                 query = session.get("query_name")
                     
-                if query != None:
-                    api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(query)
-                    response = requests.get(api_url, headers={'X-Api-Key': 'FQaci+ynPatuFRCh5oYQgQ==cAVWBbtpxIOQcReX'})
-                    
+                if query:
+                    # Hledání potraviny pomocí USDA API
+                    api_url = f'https://api.nal.usda.gov/fdc/v1/foods/search?api_key={API_KEY}&query={query}'
+
+                    response = requests.get(api_url)
+
                     if response.status_code == requests.codes.ok:
-                        
                         data = response.json()
-                        
-                    
-                        name = data[0]["name"]
+                        if 'foods' in data and data['foods']:
+                            food_data = data['foods'][0]
 
-                        
+                            # Získání nutričních hodnot pro danou potravinu
+                            name = food_data['description']
+                            nutrients = {n['nutrientName']: n['value'] for n in food_data['foodNutrients']}
 
-                        weight = float(session["query_weight"])
+                            weight = float(session["query_weight"])
 
-                        protein = round((data[0]["protein_g"]) /100 * weight, 4)
-                        
-                        carbohydrates = round((data[0]["carbohydrates_total_g"]) /100 * weight, 4)
+                            # Výpočet nutričních hodnot na základě hmotnosti
+                            protein = round((nutrients.get('Protein', 0.0) / 100) * weight, 4)
+                            carbohydrates = round((nutrients.get('Carbohydrate, by difference', 0.0) / 100) * weight, 4)
+                            fats = round((nutrients.get('Total lipid (fat)', 0.0) / 100) * weight, 4)
+                            calorie = round((nutrients.get('Energy', 0.0) / 100) * weight, 4)
 
-                        fats = round((data[0]["fat_total_g"]) /100 * weight, 4)
+                            # Uložení nové potraviny do databáze
+                            new_food = Food(name=name, protein=protein, carbohydrates=carbohydrates, fats=fats, calories=calorie, date_added=datetime.date.today(), user_id=session.get("user_id"))
 
-                        calorie = round((data[0]["calories"]) /100 * weight, 4)
+                            db.session.add(new_food)
+                            db.session.commit()
 
-                        new_food = Food(name=name, protein=protein, carbohydrates=carbohydrates, fats=fats, calories=calorie, date_added=datetime.date.today(), user_id=session.get("user_id"))
+                            result = {
+                                "protein": protein,
+                                "fats": fats,
+                                "carbohydrates": carbohydrates,
+                                "calorie": calorie,
+                                "name": name
+                            }
 
-                        db.session.add(new_food)
-                        db.session.commit()
+                            return jsonify(result)
 
-                        data = {"protein": protein, "fats": fats, "carbohydrates": carbohydrates, "calorie":calorie, "name": name}
+    return jsonify({"error": "Invalid request"}), 400
 
-                        
-
-                        return jsonify(data)
                 
                     
         
