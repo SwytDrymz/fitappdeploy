@@ -5,11 +5,13 @@ from sqlalchemy import Date, cast
 from datetime import timedelta
 import datetime
 from flask_cors import CORS
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
-app.secret_key = "hello"
-app.config['SECRET_KEY'] = "secret_key"
+app.secret_key = os.get_env("SECRET")
+app.config['SECRET_KEY'] = os.get_env("SECRET")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.permanent_session_lifetime = timedelta(minutes=1000)
 
@@ -195,7 +197,7 @@ def logout():
 
 
 
-API_KEY = 'NYJrbGl7MiLH8iyUsYWrf3Z8Rrpv7BDoOduPvddt'
+API_KEY = os.get_env("API_KEY")
 
 @app.route("/receive_data", methods=["POST"])
 def receive_data():
